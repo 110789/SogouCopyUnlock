@@ -13,7 +13,7 @@ public class HookEntry implements IXposedHookLoadPackage {
     private static final String TARGET_PACKAGE = "com.sohu.inputmethod.sogouoem";
     private static final int LIMIT = 5000;
     private static final String TOAST_TEXT = "哎呀，复制的内容超过字数限制啦~";
-    private static final boolean DEBUG = false;
+    private static final boolean DEBUG = true;
     private static final String TAG = "[SogouCopyUnlock]";
 
     @Override
