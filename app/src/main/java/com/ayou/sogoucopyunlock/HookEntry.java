@@ -1,5 +1,10 @@
 package com.ayou.sogoucopyunlock;
 
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.TextView;
+import android.widget.Toast;
+
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XposedBridge;
@@ -10,6 +15,8 @@ public class HookEntry implements IXposedHookLoadPackage {
 
     private static final String TARGET_PACKAGE = "com.sohu.inputmethod.sogouoem";
     private static final int LIMIT = 5000;
+    private static final String TOAST_TEXT = "哎呀，复制的内容超过字数限制啦~";
+    private static final boolean DEBUG = false;
     private static final String TAG = "[SogouCopyUnlock]";
 
     @Override
@@ -31,14 +38,46 @@ public class HookEntry implements IXposedHookLoadPackage {
                         if (original.length() <= LIMIT) {
                             return;
                         }
-                        boolean fromClipboardGuard = isCalledFromClipboardGuard();
-                        if (!fromClipboardGuard) {
+                        if (!isCalledFromClipboardGuard()) {
                             return;
                         }
-                        XposedBridge.log(TAG + " bypassed copy-length truncation, original length=" + original.length());
+                        log("bypassed copy-length truncation, original length=" + original.length());
                         param.setResult(original);
                     }
                 });
+
+        XposedHelpers.findAndHookMethod(Toast.class, "show", new XC_MethodHook() {
+            @Override
+            protected void beforeHookedMethod(MethodHookParam param) {
+                Toast toast = (Toast) param.thisObject;
+                View view = toast.getView();
+                if (view == null) {
+                    return;
+                }
+                String text = findText(view);
+                if (TOAST_TEXT.equals(text)) {
+                    log("suppressed copy-limit toast");
+                    param.setResult(null);
+                }
+            }
+        });
+    }
+
+    private static String findText(View view) {
+        if (view instanceof TextView) {
+            CharSequence t = ((TextView) view).getText();
+            return t == null ? null : t.toString();
+        }
+        if (view instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                String found = findText(group.getChildAt(i));
+                if (found != null) {
+                    return found;
+                }
+            }
+        }
+        return null;
     }
 
     private static boolean isCalledFromClipboardGuard() {
@@ -49,5 +88,11 @@ public class HookEntry implements IXposedHookLoadPackage {
             }
         }
         return false;
+    }
+
+    private static void log(String msg) {
+        if (DEBUG) {
+            XposedBridge.log(TAG + " " + msg);
+        }
     }
 }
