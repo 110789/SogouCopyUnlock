@@ -8,7 +8,7 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
 public class HookEntry implements IXposedHookLoadPackage {
 
-    private static final String TARGET_PACKAGE = "com.sohu.inputmethod.sogou";
+    private static final String TARGET_PACKAGE = "com.sohu.inputmethod.sogouoem";
     private static final int LIMIT = 5000;
     private static final String TAG = "[SogouCopyUnlock]";
 
