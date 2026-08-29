@@ -124,7 +124,7 @@ public class HookEntry implements IXposedHookLoadPackage {
             XposedBridge.hookAllMethods(clazz, "g0", new XC_MethodHook() {
                 @Override
                 protected void beforeHookedMethod(MethodHookParam param) {
-                    if (param.args.length == 6 && param.args[3] instanceof Spanned) {
+                    if (param.args.length == 7 && param.args[4] instanceof Spanned) {
                         log("bypassed shortcut-phrase 300-char filter");
                         param.setResult(null);
                     }
