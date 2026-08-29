@@ -1,8 +1,9 @@
 package com.ayou.sogoucopyunlock;
 
+import java.util.HashMap;
+
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.XC_MethodHook;
-import de.robv.android.xposed.XC_MethodReplacement;
 import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
@@ -12,8 +13,10 @@ public class HookEntry implements IXposedHookLoadPackage {
     private static final String TARGET_PACKAGE = "com.sohu.inputmethod.sogouoem";
     private static final int LIMIT = 5000;
     private static final String TOAST_TEXT = "哎呀，复制的内容超过字数限制啦~";
-    private static final boolean DEBUG = true;
+    private static final boolean DEBUG = false;
     private static final String TAG = "[SogouCopyUnlock]";
+
+    private static volatile HashMap<?, ?> sToolbarMap;
 
     @Override
     public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) {
@@ -81,15 +84,35 @@ public class HookEntry implements IXposedHookLoadPackage {
                     lpparam.classLoader,
                     "a",
                     int.class,
-                    new XC_MethodReplacement() {
+                    new XC_MethodHook() {
                         @Override
-                        protected Object replaceHookedMethod(MethodHookParam param) {
-                            log("toolbar add-function limit bypassed");
-                            return true;
+                        protected void beforeHookedMethod(MethodHookParam param) {
+                            try {
+                                Object map = XposedHelpers.getObjectField(param.thisObject, "a");
+                                if (map instanceof HashMap) {
+                                    sToolbarMap = (HashMap<?, ?>) map;
+                                }
+                            } catch (Throwable t) {
+                                log("capture toolbar map failed: " + t);
+                            }
                         }
                     });
         } catch (Throwable t) {
-            log("toolbar limit hook failed: " + t);
+            log("g20.a hook failed: " + t);
+        }
+
+        try {
+            XposedHelpers.findAndHookMethod(HashMap.class, "size", new XC_MethodHook() {
+                @Override
+                protected void beforeHookedMethod(MethodHookParam param) {
+                    if (param.thisObject == sToolbarMap) {
+                        log("faked toolbar HashMap.size() -> 0");
+                        param.setResult(0);
+                    }
+                }
+            });
+        } catch (Throwable t) {
+            log("HashMap.size hook failed: " + t);
         }
     }
 
