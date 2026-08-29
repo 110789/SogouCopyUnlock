@@ -14,6 +14,7 @@ public class HookEntry implements IXposedHookLoadPackage {
 
     private static final String TARGET_PACKAGE = "com.sohu.inputmethod.sogouoem";
     private static final int LIMIT = 5000;
+    private static final int PHRASE_LIMIT = 300;
     private static final String TOAST_TEXT = "哎呀，复制的内容超过字数限制啦~";
     private static final boolean DEBUG = true;
     private static final String TAG = "[SogouCopyUnlock]";
@@ -32,18 +33,20 @@ public class HookEntry implements IXposedHookLoadPackage {
                     protected void beforeHookedMethod(MethodHookParam param) {
                         int begin = (int) param.args[0];
                         int end = (int) param.args[1];
-                        if (begin != 0 || end != LIMIT) {
-                            return;
-                        }
                         String original = (String) param.thisObject;
-                        if (original.length() <= LIMIT) {
+                        if (begin == 0 && end == LIMIT
+                                && original.length() > LIMIT
+                                && isCalledFromClipboardGuard()) {
+                            log("bypassed copy-length truncation, original length=" + original.length());
+                            param.setResult(original);
                             return;
                         }
-                        if (!isCalledFromClipboardGuard()) {
-                            return;
+                        if (begin == 0 && end == PHRASE_LIMIT
+                                && original.length() > PHRASE_LIMIT
+                                && isCalledFromShortcutPhrases()) {
+                            log("bypassed shortcut-phrase move-in truncation, original length=" + original.length());
+                            param.setResult(original);
                         }
-                        log("bypassed copy-length truncation, original length=" + original.length());
-                        param.setResult(original);
                     }
                 });
 
