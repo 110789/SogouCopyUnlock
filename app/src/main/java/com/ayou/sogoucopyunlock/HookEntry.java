@@ -42,8 +42,7 @@ public class HookEntry implements IXposedHookLoadPackage {
                             return;
                         }
                         if (begin == 0 && end == PHRASE_LIMIT
-                                && original.length() > PHRASE_LIMIT
-                                && isCalledFromShortcutPhrases()) {
+                                && original.length() > PHRASE_LIMIT) {
                             log("bypassed shortcut-phrase move-in truncation, original length=" + original.length());
                             param.setResult(original);
                         }
