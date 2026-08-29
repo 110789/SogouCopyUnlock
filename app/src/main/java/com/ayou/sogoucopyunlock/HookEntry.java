@@ -166,6 +166,8 @@ public class HookEntry implements IXposedHookLoadPackage {
             log("LengthFilter hook failed: " + t);
         }
 
+        hookClipboardMoveToPhrase(lpparam);
+
         try {
             Class<?> clazz = XposedHelpers.findClass(
                     "com.sogou.inputmethod.oem.oppo.dialog.ShortcutPhrasesDialogTransActivity",
@@ -201,6 +203,31 @@ public class HookEntry implements IXposedHookLoadPackage {
             }
         }
         return false;
+    }
+
+    private static void hookClipboardMoveToPhrase(XC_LoadPackage.LoadPackageParam lpparam) {
+        try {
+            XposedHelpers.findAndHookMethod(
+                    "com.sohu.inputmethod.clipboard.ClipboardKeyboard",
+                    lpparam.classLoader,
+                    "v", int.class,
+                    new de.robv.android.xposed.XC_MethodReplacement() {
+                        @Override
+                        protected Object replaceHookedMethod(MethodHookParam param) throws Throwable {
+                            Object thiz = param.thisObject;
+                            int index = (int) param.args[0];
+                            Object list = XposedHelpers.getObjectField(thiz, "q");
+                            Object item = ((java.util.List<?>) list).get(index);
+                            String text = (String) XposedHelpers.getObjectField(item, "d");
+                            XposedHelpers.callMethod(thiz, "I", (Object) text);
+                            XposedHelpers.callMethod(thiz, "Z");
+                            log("bypassed clipboard move-to-phrase length rejection, length=" + text.length());
+                            return null;
+                        }
+                    });
+        } catch (Throwable t) {
+            log("clipboard move-to-phrase hook failed: " + t);
+        }
     }
 
     private static boolean isCalledFromClipboardGuard() {
