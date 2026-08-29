@@ -118,6 +118,26 @@ public class HookEntry implements IXposedHookLoadPackage {
         }
 
         try {
+            XposedHelpers.findAndHookMethod(
+                    "android.text.InputFilter$LengthFilter",
+                    lpparam.classLoader,
+                    "filter",
+                    CharSequence.class, int.class, int.class,
+                    Spanned.class, int.class, int.class,
+                    new XC_MethodHook() {
+                        @Override
+                        protected void beforeHookedMethod(MethodHookParam param) {
+                            if (isCalledFromShortcutPhrases()) {
+                                log("bypassed system LengthFilter for shortcut phrases");
+                                param.setResult(null);
+                            }
+                        }
+                    });
+        } catch (Throwable t) {
+            log("LengthFilter hook failed: " + t);
+        }
+
+        try {
             Class<?> clazz = XposedHelpers.findClass(
                     "com.sogou.inputmethod.oem.oppo.dialog.ShortcutPhrasesDialogTransActivity",
                     lpparam.classLoader);
@@ -141,6 +161,17 @@ public class HookEntry implements IXposedHookLoadPackage {
         } catch (Throwable t) {
             log("shortcut phrase filter hook failed: " + t);
         }
+    }
+
+    private static boolean isCalledFromShortcutPhrases() {
+        StackTraceElement[] stack = new Throwable().getStackTrace();
+        for (StackTraceElement e : stack) {
+            if (e.getClassName().contains("oem.oppo.dialog")
+                    || e.getClassName().contains("ShortcutPhrase")) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static boolean isCalledFromClipboardGuard() {
