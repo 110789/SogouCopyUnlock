@@ -122,6 +122,33 @@ public class HookEntry implements IXposedHookLoadPackage {
 
         try {
             XposedHelpers.findAndHookMethod(
+                    "android.widget.TextView",
+                    lpparam.classLoader,
+                    "setFilters",
+                    android.text.InputFilter[].class,
+                    new XC_MethodHook() {
+                        @Override
+                        protected void beforeHookedMethod(MethodHookParam param) {
+                            if (!isCalledFromShortcutPhrases()) {
+                                return;
+                            }
+                            Object[] filters = (Object[]) param.args[0];
+                            StringBuilder sb = new StringBuilder("setFilters() called from shortcut-phrase context, filters=[");
+                            if (filters != null) {
+                                for (Object f : filters) {
+                                    sb.append(f == null ? "null" : f.getClass().getName()).append(", ");
+                                }
+                            }
+                            sb.append("]");
+                            log(sb.toString());
+                        }
+                    });
+        } catch (Throwable t) {
+            log("setFilters diagnostic hook failed: " + t);
+        }
+
+        try {
+            XposedHelpers.findAndHookMethod(
                     "android.text.InputFilter$LengthFilter",
                     lpparam.classLoader,
                     "filter",
