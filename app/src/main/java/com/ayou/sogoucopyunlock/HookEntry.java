@@ -2,6 +2,8 @@ package com.ayou.sogoucopyunlock;
 
 import java.util.HashMap;
 
+import android.text.Spanned;
+
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XposedBridge;
@@ -113,6 +115,23 @@ public class HookEntry implements IXposedHookLoadPackage {
             });
         } catch (Throwable t) {
             log("HashMap.size hook failed: " + t);
+        }
+
+        try {
+            Class<?> clazz = XposedHelpers.findClass(
+                    "com.sogou.inputmethod.oem.oppo.dialog.ShortcutPhrasesDialogTransActivity",
+                    lpparam.classLoader);
+            XposedBridge.hookAllMethods(clazz, "g0", new XC_MethodHook() {
+                @Override
+                protected void beforeHookedMethod(MethodHookParam param) {
+                    if (param.args.length == 6 && param.args[3] instanceof Spanned) {
+                        log("bypassed shortcut-phrase 300-char filter");
+                        param.setResult(null);
+                    }
+                }
+            });
+        } catch (Throwable t) {
+            log("shortcut phrase filter hook failed: " + t);
         }
     }
 
