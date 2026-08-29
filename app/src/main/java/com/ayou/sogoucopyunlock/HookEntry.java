@@ -1,7 +1,5 @@
 package com.ayou.sogoucopyunlock;
 
-import android.widget.TextView;
-
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XposedBridge;
@@ -43,24 +41,44 @@ public class HookEntry implements IXposedHookLoadPackage {
                     }
                 });
 
-        XC_MethodHook textHook = new XC_MethodHook() {
-            @Override
-            protected void beforeHookedMethod(MethodHookParam param) {
-                Object arg = param.args[0];
-                if (arg == null) {
-                    return;
-                }
-                if (TOAST_TEXT.contentEquals((CharSequence) arg)) {
-                    log("suppressed copy-limit tip view");
-                    param.args[0] = "";
-                }
-            }
-        };
-
-        XposedHelpers.findAndHookMethod(TextView.class, "setText",
-                CharSequence.class, textHook);
-        XposedHelpers.findAndHookMethod(TextView.class, "setText",
-                CharSequence.class, TextView.BufferType.class, textHook);
+        try {
+            XposedHelpers.findAndHookMethod(
+                    "com.sogou.base.popuplayer.toast.SToast",
+                    lpparam.classLoader,
+                    "show",
+                    new XC_MethodHook() {
+                        @Override
+                        protected void beforeHookedMethod(MethodHookParam param) {
+                            Object toastParam;
+                            try {
+                                toastParam = XposedHelpers.getObjectField(param.thisObject, "mToastParameter");
+                            } catch (Throwable t) {
+                                log("getObjectField mToastParameter failed: " + t);
+                                return;
+                            }
+                            if (toastParam == null) {
+                                return;
+                            }
+                            Object textObj;
+                            try {
+                                textObj = XposedHelpers.getObjectField(toastParam, "b");
+                            } catch (Throwable t) {
+                                log("getObjectField b failed: " + t);
+                                return;
+                            }
+                            if (textObj instanceof CharSequence) {
+                                log("SToast.show() text=" + textObj.toString());
+                            }
+                            if (textObj instanceof CharSequence && TOAST_TEXT.contentEquals((CharSequence) textObj)) {
+                                log("suppressed copy-limit SToast, no view created");
+                                param.setResult(null);
+                            }
+                        }
+                    });
+            log("SToast hook installed");
+        } catch (Throwable t) {
+            log("SToast hook failed: " + t);
+        }
     }
 
     private static boolean isCalledFromClipboardGuard() {
