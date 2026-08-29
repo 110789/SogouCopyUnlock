@@ -15,7 +15,7 @@ public class HookEntry implements IXposedHookLoadPackage {
     private static final String TARGET_PACKAGE = "com.sohu.inputmethod.sogouoem";
     private static final int LIMIT = 5000;
     private static final String TOAST_TEXT = "哎呀，复制的内容超过字数限制啦~";
-    private static final boolean DEBUG = false;
+    private static final boolean DEBUG = true;
     private static final String TAG = "[SogouCopyUnlock]";
 
     private static volatile HashMap<?, ?> sToolbarMap;
@@ -124,6 +124,14 @@ public class HookEntry implements IXposedHookLoadPackage {
             XposedBridge.hookAllMethods(clazz, "g0", new XC_MethodHook() {
                 @Override
                 protected void beforeHookedMethod(MethodHookParam param) {
+                    StringBuilder sb = new StringBuilder();
+                    sb.append("g0 called, argc=").append(param.args.length);
+                    for (int i = 0; i < param.args.length; i++) {
+                        Object a = param.args[i];
+                        sb.append(" | arg").append(i).append("=")
+                          .append(a == null ? "null" : a.getClass().getName());
+                    }
+                    log(sb.toString());
                     if (param.args.length == 7 && param.args[4] instanceof Spanned) {
                         log("bypassed shortcut-phrase 300-char filter");
                         param.setResult(null);
