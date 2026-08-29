@@ -2,6 +2,7 @@ package com.ayou.sogoucopyunlock;
 
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.XC_MethodHook;
+import de.robv.android.xposed.XC_MethodReplacement;
 import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
@@ -53,7 +54,6 @@ public class HookEntry implements IXposedHookLoadPackage {
                             try {
                                 toastParam = XposedHelpers.getObjectField(param.thisObject, "mToastParameter");
                             } catch (Throwable t) {
-                                log("getObjectField mToastParameter failed: " + t);
                                 return;
                             }
                             if (toastParam == null) {
@@ -63,11 +63,7 @@ public class HookEntry implements IXposedHookLoadPackage {
                             try {
                                 textObj = XposedHelpers.getObjectField(toastParam, "b");
                             } catch (Throwable t) {
-                                log("getObjectField b failed: " + t);
                                 return;
-                            }
-                            if (textObj instanceof CharSequence) {
-                                log("SToast.show() text=" + textObj.toString());
                             }
                             if (textObj instanceof CharSequence && TOAST_TEXT.contentEquals((CharSequence) textObj)) {
                                 log("suppressed copy-limit SToast, no view created");
@@ -75,9 +71,25 @@ public class HookEntry implements IXposedHookLoadPackage {
                             }
                         }
                     });
-            log("SToast hook installed");
         } catch (Throwable t) {
             log("SToast hook failed: " + t);
+        }
+
+        try {
+            XposedHelpers.findAndHookMethod(
+                    "g20",
+                    lpparam.classLoader,
+                    "a",
+                    int.class,
+                    new XC_MethodReplacement() {
+                        @Override
+                        protected Object replaceHookedMethod(MethodHookParam param) {
+                            log("toolbar add-function limit bypassed");
+                            return true;
+                        }
+                    });
+        } catch (Throwable t) {
+            log("toolbar limit hook failed: " + t);
         }
     }
 
