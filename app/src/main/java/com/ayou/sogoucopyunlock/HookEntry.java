@@ -59,6 +59,12 @@ public class HookEntry implements IXposedHookLoadPackage {
 
     private static void loadPrefs() {
         XSharedPreferences prefs = new XSharedPreferences(Settings.PACKAGE_NAME, Settings.PREFS_NAME);
+        java.io.File f = prefs.getFile();
+        XposedBridge.log(TAG + " prefs file path=" + f.getAbsolutePath()
+                + " exists=" + f.exists()
+                + " canRead=" + f.canRead()
+                + " parentCanExecute=" + f.getParentFile().canExecute()
+                + " parentCanRead=" + f.getParentFile().canRead());
         prefs.reload();
         sDebug = prefs.getBoolean(Settings.KEY_DEBUG, false);
         sFeatureCopyLimit = prefs.getBoolean(Settings.KEY_COPY_LIMIT, true);
@@ -66,6 +72,12 @@ public class HookEntry implements IXposedHookLoadPackage {
         sFeaturePhraseLength = prefs.getBoolean(Settings.KEY_PHRASE_LENGTH, true);
         sFeatureClipboardMove = prefs.getBoolean(Settings.KEY_CLIPBOARD_MOVE, true);
         sFeatureClipboardHistory = prefs.getBoolean(Settings.KEY_CLIPBOARD_HISTORY, true);
+        XposedBridge.log(TAG + " loaded prefs: debug=" + sDebug
+                + " copyLimit=" + sFeatureCopyLimit
+                + " toolbar=" + sFeatureToolbar
+                + " phraseLength=" + sFeaturePhraseLength
+                + " clipboardMove=" + sFeatureClipboardMove
+                + " clipboardHistory=" + sFeatureClipboardHistory);
     }
 
     private static void hookCopyLimit() {
