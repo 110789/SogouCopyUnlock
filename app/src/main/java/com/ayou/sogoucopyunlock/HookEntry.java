@@ -8,7 +8,6 @@ import android.text.Spanned;
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XC_MethodReplacement;
-import de.robv.android.xposed.XSharedPreferences;
 import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
@@ -31,13 +30,31 @@ public class HookEntry implements IXposedHookLoadPackage {
     private static volatile HashMap<?, ?> sToolbarMap;
 
     @Override
-    public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) {
+    public void handleLoadPackage(final XC_LoadPackage.LoadPackageParam lpparam) {
         if (!TARGET_PACKAGE.equals(lpparam.packageName)) {
             return;
         }
 
-        loadPrefs();
+        try {
+            XposedHelpers.findAndHookMethod(
+                    "android.app.Instrumentation",
+                    lpparam.classLoader,
+                    "callApplicationOnCreate",
+                    android.app.Application.class,
+                    new XC_MethodHook() {
+                        @Override
+                        protected void afterHookedMethod(MethodHookParam param) {
+                            android.app.Application app = (android.app.Application) param.args[0];
+                            loadPrefs(app.getApplicationContext());
+                            installHooks(lpparam);
+                        }
+                    });
+        } catch (Throwable t) {
+            XposedBridge.log(TAG + " failed to hook Application startup: " + t);
+        }
+    }
 
+    private static void installHooks(XC_LoadPackage.LoadPackageParam lpparam) {
         if (sFeatureCopyLimit) {
             hookCopyLimit();
             hookCopyLimitToast(lpparam);
@@ -57,21 +74,34 @@ public class HookEntry implements IXposedHookLoadPackage {
         }
     }
 
-    private static void loadPrefs() {
-        XSharedPreferences prefs = new XSharedPreferences(Settings.PACKAGE_NAME, Settings.PREFS_NAME);
-        java.io.File f = prefs.getFile();
-        XposedBridge.log(TAG + " prefs file path=" + f.getAbsolutePath()
-                + " exists=" + f.exists()
-                + " canRead=" + f.canRead()
-                + " parentCanExecute=" + f.getParentFile().canExecute()
-                + " parentCanRead=" + f.getParentFile().canRead());
-        prefs.reload();
-        sDebug = prefs.getBoolean(Settings.KEY_DEBUG, false);
-        sFeatureCopyLimit = prefs.getBoolean(Settings.KEY_COPY_LIMIT, true);
-        sFeatureToolbar = prefs.getBoolean(Settings.KEY_TOOLBAR, true);
-        sFeaturePhraseLength = prefs.getBoolean(Settings.KEY_PHRASE_LENGTH, true);
-        sFeatureClipboardMove = prefs.getBoolean(Settings.KEY_CLIPBOARD_MOVE, true);
-        sFeatureClipboardHistory = prefs.getBoolean(Settings.KEY_CLIPBOARD_HISTORY, true);
+    private static void loadPrefs(android.content.Context context) {
+        sDebug = false;
+        sFeatureCopyLimit = true;
+        sFeatureToolbar = true;
+        sFeaturePhraseLength = true;
+        sFeatureClipboardMove = true;
+        sFeatureClipboardHistory = true;
+        try {
+            android.net.Uri uri = android.net.Uri.parse("content://" + ConfigProvider.AUTHORITY);
+            android.database.Cursor cursor = context.getContentResolver()
+                    .query(uri, null, null, null, null);
+            if (cursor != null) {
+                try {
+                    if (cursor.moveToFirst()) {
+                        sDebug = cursor.getInt(cursor.getColumnIndexOrThrow(Settings.KEY_DEBUG)) == 1;
+                        sFeatureCopyLimit = cursor.getInt(cursor.getColumnIndexOrThrow(Settings.KEY_COPY_LIMIT)) == 1;
+                        sFeatureToolbar = cursor.getInt(cursor.getColumnIndexOrThrow(Settings.KEY_TOOLBAR)) == 1;
+                        sFeaturePhraseLength = cursor.getInt(cursor.getColumnIndexOrThrow(Settings.KEY_PHRASE_LENGTH)) == 1;
+                        sFeatureClipboardMove = cursor.getInt(cursor.getColumnIndexOrThrow(Settings.KEY_CLIPBOARD_MOVE)) == 1;
+                        sFeatureClipboardHistory = cursor.getInt(cursor.getColumnIndexOrThrow(Settings.KEY_CLIPBOARD_HISTORY)) == 1;
+                    }
+                } finally {
+                    cursor.close();
+                }
+            }
+        } catch (Throwable t) {
+            XposedBridge.log(TAG + " ConfigProvider query failed, using defaults: " + t);
+        }
         XposedBridge.log(TAG + " loaded prefs: debug=" + sDebug
                 + " copyLimit=" + sFeatureCopyLimit
                 + " toolbar=" + sFeatureToolbar

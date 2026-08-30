@@ -17,6 +17,13 @@
             android:name="xposeddescription"
             android:value="搜狗输入法解限工具：复制字数、工具栏数量、快捷短语字数、剪贴板历史等限制均可自定义开关" />
 
+        <provider
+            android:name=".ConfigProvider"
+            android:authorities="com.ayou.sogoucopyunlock.provider"
+            android:exported="true"
+            android:readPermission=""
+            android:writePermission="" />
+
         <activity
             android:name=".SettingsActivity"
             android:exported="true"
