@@ -1,11 +1,14 @@
 package com.ayou.sogoucopyunlock;
 
 import java.util.HashMap;
+import java.util.List;
 
 import android.text.Spanned;
 
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.XC_MethodHook;
+import de.robv.android.xposed.XC_MethodReplacement;
+import de.robv.android.xposed.XSharedPreferences;
 import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
@@ -16,8 +19,14 @@ public class HookEntry implements IXposedHookLoadPackage {
     private static final int LIMIT = 5000;
     private static final int PHRASE_LIMIT = 300;
     private static final String TOAST_TEXT = "哎呀，复制的内容超过字数限制啦~";
-    private static final boolean DEBUG = true;
     private static final String TAG = "[SogouCopyUnlock]";
+
+    private static boolean sDebug;
+    private static boolean sFeatureCopyLimit;
+    private static boolean sFeatureToolbar;
+    private static boolean sFeaturePhraseLength;
+    private static boolean sFeatureClipboardMove;
+    private static boolean sFeatureClipboardHistory;
 
     private static volatile HashMap<?, ?> sToolbarMap;
 
@@ -27,6 +36,39 @@ public class HookEntry implements IXposedHookLoadPackage {
             return;
         }
 
+        loadPrefs();
+
+        if (sFeatureCopyLimit) {
+            hookCopyLimit();
+            hookCopyLimitToast(lpparam);
+        }
+        if (sFeatureToolbar) {
+            hookToolbarLimit(lpparam);
+        }
+        if (sFeaturePhraseLength) {
+            hookPhraseLengthFilter(lpparam);
+            hookSystemLengthFilter(lpparam);
+        }
+        if (sFeatureClipboardMove) {
+            hookClipboardMoveToPhrase(lpparam);
+        }
+        if (sFeatureClipboardHistory) {
+            hookClipboardHistoryEviction(lpparam);
+        }
+    }
+
+    private static void loadPrefs() {
+        XSharedPreferences prefs = new XSharedPreferences(Settings.PACKAGE_NAME, Settings.PREFS_NAME);
+        prefs.reload();
+        sDebug = prefs.getBoolean(Settings.KEY_DEBUG, false);
+        sFeatureCopyLimit = prefs.getBoolean(Settings.KEY_COPY_LIMIT, true);
+        sFeatureToolbar = prefs.getBoolean(Settings.KEY_TOOLBAR, true);
+        sFeaturePhraseLength = prefs.getBoolean(Settings.KEY_PHRASE_LENGTH, true);
+        sFeatureClipboardMove = prefs.getBoolean(Settings.KEY_CLIPBOARD_MOVE, true);
+        sFeatureClipboardHistory = prefs.getBoolean(Settings.KEY_CLIPBOARD_HISTORY, true);
+    }
+
+    private static void hookCopyLimit() {
         XposedHelpers.findAndHookMethod(String.class, "substring",
                 int.class, int.class, new XC_MethodHook() {
                     @Override
@@ -42,13 +84,16 @@ public class HookEntry implements IXposedHookLoadPackage {
                             return;
                         }
                         if (begin == 0 && end == PHRASE_LIMIT
-                                && original.length() > PHRASE_LIMIT) {
+                                && original.length() > PHRASE_LIMIT
+                                && sFeaturePhraseLength) {
                             log("bypassed shortcut-phrase move-in truncation, original length=" + original.length());
                             param.setResult(original);
                         }
                     }
                 });
+    }
 
+    private static void hookCopyLimitToast(XC_LoadPackage.LoadPackageParam lpparam) {
         try {
             XposedHelpers.findAndHookMethod(
                     "com.sogou.base.popuplayer.toast.SToast",
@@ -81,7 +126,9 @@ public class HookEntry implements IXposedHookLoadPackage {
         } catch (Throwable t) {
             log("SToast hook failed: " + t);
         }
+    }
 
+    private static void hookToolbarLimit(XC_LoadPackage.LoadPackageParam lpparam) {
         try {
             XposedHelpers.findAndHookMethod(
                     "g20",
@@ -118,34 +165,9 @@ public class HookEntry implements IXposedHookLoadPackage {
         } catch (Throwable t) {
             log("HashMap.size hook failed: " + t);
         }
+    }
 
-        try {
-            XposedHelpers.findAndHookMethod(
-                    "android.widget.TextView",
-                    lpparam.classLoader,
-                    "setFilters",
-                    android.text.InputFilter[].class,
-                    new XC_MethodHook() {
-                        @Override
-                        protected void beforeHookedMethod(MethodHookParam param) {
-                            if (!isCalledFromShortcutPhrases()) {
-                                return;
-                            }
-                            Object[] filters = (Object[]) param.args[0];
-                            StringBuilder sb = new StringBuilder("setFilters() called from shortcut-phrase context, filters=[");
-                            if (filters != null) {
-                                for (Object f : filters) {
-                                    sb.append(f == null ? "null" : f.getClass().getName()).append(", ");
-                                }
-                            }
-                            sb.append("]");
-                            log(sb.toString());
-                        }
-                    });
-        } catch (Throwable t) {
-            log("setFilters diagnostic hook failed: " + t);
-        }
-
+    private static void hookSystemLengthFilter(XC_LoadPackage.LoadPackageParam lpparam) {
         try {
             XposedHelpers.findAndHookMethod(
                     "android.text.InputFilter$LengthFilter",
@@ -165,9 +187,9 @@ public class HookEntry implements IXposedHookLoadPackage {
         } catch (Throwable t) {
             log("LengthFilter hook failed: " + t);
         }
+    }
 
-        hookClipboardMoveToPhrase(lpparam);
-
+    private static void hookPhraseLengthFilter(XC_LoadPackage.LoadPackageParam lpparam) {
         try {
             Class<?> clazz = XposedHelpers.findClass(
                     "com.sogou.inputmethod.oem.oppo.dialog.ShortcutPhrasesDialogTransActivity",
@@ -175,14 +197,6 @@ public class HookEntry implements IXposedHookLoadPackage {
             XposedBridge.hookAllMethods(clazz, "g0", new XC_MethodHook() {
                 @Override
                 protected void beforeHookedMethod(MethodHookParam param) {
-                    StringBuilder sb = new StringBuilder();
-                    sb.append("g0 called, argc=").append(param.args.length);
-                    for (int i = 0; i < param.args.length; i++) {
-                        Object a = param.args[i];
-                        sb.append(" | arg").append(i).append("=")
-                          .append(a == null ? "null" : a.getClass().getName());
-                    }
-                    log(sb.toString());
                     if (param.args.length == 7 && param.args[4] instanceof Spanned) {
                         log("bypassed shortcut-phrase 300-char filter");
                         param.setResult(null);
@@ -191,6 +205,56 @@ public class HookEntry implements IXposedHookLoadPackage {
             });
         } catch (Throwable t) {
             log("shortcut phrase filter hook failed: " + t);
+        }
+    }
+
+    private static void hookClipboardMoveToPhrase(XC_LoadPackage.LoadPackageParam lpparam) {
+        try {
+            XposedHelpers.findAndHookMethod(
+                    "com.sohu.inputmethod.clipboard.ClipboardKeyboard",
+                    lpparam.classLoader,
+                    "v", int.class,
+                    new XC_MethodReplacement() {
+                        @Override
+                        protected Object replaceHookedMethod(MethodHookParam param) throws Throwable {
+                            Object thiz = param.thisObject;
+                            int index = (int) param.args[0];
+                            Object list = XposedHelpers.getObjectField(thiz, "q");
+                            Object item = ((List<?>) list).get(index);
+                            String text = (String) XposedHelpers.getObjectField(item, "d");
+                            XposedHelpers.callMethod(thiz, "I", (Object) text);
+                            XposedHelpers.callMethod(thiz, "Z");
+                            log("bypassed clipboard move-to-phrase length rejection, length=" + text.length());
+                            return null;
+                        }
+                    });
+        } catch (Throwable t) {
+            log("clipboard move-to-phrase hook failed: " + t);
+        }
+    }
+
+    private static void hookClipboardHistoryEviction(XC_LoadPackage.LoadPackageParam lpparam) {
+        try {
+            XposedHelpers.findAndHookMethod(
+                    "org.greenrobot.greendao.AbstractDao",
+                    lpparam.classLoader,
+                    "delete", Object.class,
+                    new XC_MethodHook() {
+                        @Override
+                        protected void beforeHookedMethod(MethodHookParam param) {
+                            StackTraceElement[] stack = new Throwable().getStackTrace();
+                            for (StackTraceElement e : stack) {
+                                if (e.getClassName().equals("com.sohu.inputmethod.clipboard.z")
+                                        && e.getMethodName().equals("B")) {
+                                    log("blocked clipboard history eviction (300-item cap)");
+                                    param.setResult(null);
+                                    return;
+                                }
+                            }
+                        }
+                    });
+        } catch (Throwable t) {
+            log("clipboard history eviction hook failed: " + t);
         }
     }
 
@@ -205,31 +269,6 @@ public class HookEntry implements IXposedHookLoadPackage {
         return false;
     }
 
-    private static void hookClipboardMoveToPhrase(XC_LoadPackage.LoadPackageParam lpparam) {
-        try {
-            XposedHelpers.findAndHookMethod(
-                    "com.sohu.inputmethod.clipboard.ClipboardKeyboard",
-                    lpparam.classLoader,
-                    "v", int.class,
-                    new de.robv.android.xposed.XC_MethodReplacement() {
-                        @Override
-                        protected Object replaceHookedMethod(MethodHookParam param) throws Throwable {
-                            Object thiz = param.thisObject;
-                            int index = (int) param.args[0];
-                            Object list = XposedHelpers.getObjectField(thiz, "q");
-                            Object item = ((java.util.List<?>) list).get(index);
-                            String text = (String) XposedHelpers.getObjectField(item, "d");
-                            XposedHelpers.callMethod(thiz, "I", (Object) text);
-                            XposedHelpers.callMethod(thiz, "Z");
-                            log("bypassed clipboard move-to-phrase length rejection, length=" + text.length());
-                            return null;
-                        }
-                    });
-        } catch (Throwable t) {
-            log("clipboard move-to-phrase hook failed: " + t);
-        }
-    }
-
     private static boolean isCalledFromClipboardGuard() {
         StackTraceElement[] stack = new Throwable().getStackTrace();
         for (StackTraceElement e : stack) {
@@ -241,7 +280,7 @@ public class HookEntry implements IXposedHookLoadPackage {
     }
 
     private static void log(String msg) {
-        if (DEBUG) {
+        if (sDebug) {
             XposedBridge.log(TAG + " " + msg);
         }
     }

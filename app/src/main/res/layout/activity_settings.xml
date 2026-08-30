@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_page"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="SogouCopyUnlock"
+            android:textColor="@color/text_title"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="4dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="搜狗输入法解限工具，勾选需要启用的功能"
+            android:textColor="@color/text_subtitle"
+            android:textSize="13sp"
+            android:layout_marginBottom="20dp" />
+
+        <LinearLayout
+            android:id="@+id/row_copy_limit"
+            style="@style/SettingRow">
+            <LinearLayout style="@style/SettingRowTextArea">
+                <TextView style="@style/SettingRowTitle" android:text="复制字数上限" />
+                <TextView style="@style/SettingRowSubtitle" android:text="解除5000字复制截断及提示" />
+            </LinearLayout>
+            <Switch android:id="@+id/switch_copy_limit" style="@style/SettingRowSwitch" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/row_toolbar"
+            style="@style/SettingRow">
+            <LinearLayout style="@style/SettingRowTextArea">
+                <TextView style="@style/SettingRowTitle" android:text="工具栏数量限制" />
+                <TextView style="@style/SettingRowSubtitle" android:text="解除最多添加4个工具的限制" />
+            </LinearLayout>
+            <Switch android:id="@+id/switch_toolbar" style="@style/SettingRowSwitch" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/row_phrase_length"
+            style="@style/SettingRow">
+            <LinearLayout style="@style/SettingRowTextArea">
+                <TextView style="@style/SettingRowTitle" android:text="快捷短语字数限制" />
+                <TextView style="@style/SettingRowSubtitle" android:text="解除单条短语最多300字的限制" />
+            </LinearLayout>
+            <Switch android:id="@+id/switch_phrase_length" style="@style/SettingRowSwitch" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/row_clipboard_move"
+            style="@style/SettingRow">
+            <LinearLayout style="@style/SettingRowTextArea">
+                <TextView style="@style/SettingRowTitle" android:text="剪贴板移入短语限制" />
+                <TextView style="@style/SettingRowSubtitle" android:text="解除移入快捷短语时的300字限制" />
+            </LinearLayout>
+            <Switch android:id="@+id/switch_clipboard_move" style="@style/SettingRowSwitch" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/row_clipboard_history"
+            style="@style/SettingRow">
+            <LinearLayout style="@style/SettingRowTextArea">
+                <TextView style="@style/SettingRowTitle" android:text="剪贴板历史条数限制" />
+                <TextView style="@style/SettingRowSubtitle" android:text="解除历史记录最多保留300条的限制" />
+            </LinearLayout>
+            <Switch android:id="@+id/switch_clipboard_history" style="@style/SettingRowSwitch" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/row_debug"
+            style="@style/SettingRow">
+            <LinearLayout style="@style/SettingRowTextArea">
+                <TextView style="@style/SettingRowTitle" android:text="调试日志" />
+                <TextView style="@style/SettingRowSubtitle" android:text="在LSPosed日志中输出详细信息" />
+            </LinearLayout>
+            <Switch android:id="@+id/switch_debug" style="@style/SettingRowSwitch" />
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="修改设置后需要重启搜狗输入法（或重启手机）才能生效"
+            android:textColor="@color/text_subtitle"
+            android:textSize="12sp" />
+
+    </LinearLayout>
+</ScrollView>

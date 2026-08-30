@@ -4,6 +4,7 @@
     <application
         android:label="SogouCopyUnlock"
         android:allowBackup="false"
+        android:theme="@style/AppTheme"
         android:extractNativeLibs="false">
 
         <meta-data
@@ -14,12 +15,12 @@
             android:value="82" />
         <meta-data
             android:name="xposeddescription"
-            android:value="去除搜狗输入法剪贴板复制字数上限（5000字）" />
+            android:value="搜狗输入法解限工具：复制字数、工具栏数量、快捷短语字数、剪贴板历史等限制均可自定义开关" />
 
         <activity
-            android:name=".DummyActivity"
+            android:name=".SettingsActivity"
             android:exported="true"
-            android:theme="@android:style/Theme.NoDisplay">
+            android:theme="@style/AppTheme">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

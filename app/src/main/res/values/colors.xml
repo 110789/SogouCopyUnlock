@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg_page">#F4F5F7</color>
+    <color name="bg_card">#FFFFFF</color>
+    <color name="text_title">#1C1E21</color>
+    <color name="text_subtitle">#8A8F98</color>
+    <color name="accent">#3D7EFF</color>
+    <color name="divider">#ECEDF0</color>
+</resources>
