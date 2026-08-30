@@ -72,6 +72,9 @@ public class HookEntry implements IXposedHookLoadPackage {
         if (sFeatureClipboardHistory) {
             hookClipboardHistoryEviction(lpparam);
         }
+        if (sFeatureClipboardHistory) {
+            hookClipboardCountLabel(lpparam);
+        }
     }
 
     private static void loadPrefs(android.content.Context context) {
@@ -273,6 +276,44 @@ public class HookEntry implements IXposedHookLoadPackage {
         } catch (Throwable t) {
             log("clipboard move-to-phrase hook failed: " + t);
         }
+    }
+
+    private static void hookClipboardCountLabel(XC_LoadPackage.LoadPackageParam lpparam) {
+        try {
+            XposedHelpers.findAndHookMethod(String.class, "format",
+                    String.class, Object[].class, new XC_MethodHook() {
+                        @Override
+                        protected void beforeHookedMethod(MethodHookParam param) {
+                            String fmt = (String) param.args[0];
+                            if (!"\uFF08%d/%d\uFF09".equals(fmt)) {
+                                return;
+                            }
+                            Object[] args = (Object[]) param.args[1];
+                            if (args == null || args.length != 2
+                                    || !(args[1] instanceof Integer)
+                                    || (Integer) args[1] != 300) {
+                                return;
+                            }
+                            if (!isCalledFromClipboardCandidateView()) {
+                                return;
+                            }
+                            log("replaced clipboard count label with unlimited text");
+                            param.setResult("\uFF08" + args[0] + "/\u65E0\u9650\u5236\uFF09");
+                        }
+                    });
+        } catch (Throwable t) {
+            log("clipboard count label hook failed: " + t);
+        }
+    }
+
+    private static boolean isCalledFromClipboardCandidateView() {
+        StackTraceElement[] stack = new Throwable().getStackTrace();
+        for (StackTraceElement e : stack) {
+            if (e.getClassName().equals("com.sohu.inputmethod.clipboard.ClipboardCandidateView")) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static void hookClipboardHistoryEviction(XC_LoadPackage.LoadPackageParam lpparam) {
