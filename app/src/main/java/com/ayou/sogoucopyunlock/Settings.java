@@ -16,6 +16,7 @@ public class Settings {
     public static final String KEY_PHRASE_LENGTH = "feature_phrase_length";
     public static final String KEY_CLIPBOARD_MOVE = "feature_clipboard_move";
     public static final String KEY_CLIPBOARD_HISTORY = "feature_clipboard_history";
+    public static final String KEY_STAT_BLOCK = "feature_stat_block";
 
     public static SharedPreferences prefs(Context context) {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);

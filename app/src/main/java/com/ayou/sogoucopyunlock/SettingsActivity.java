@@ -17,6 +17,7 @@ public class SettingsActivity extends Activity {
         bindSwitch(R.id.switch_phrase_length, Settings.KEY_PHRASE_LENGTH);
         bindSwitch(R.id.switch_clipboard_move, Settings.KEY_CLIPBOARD_MOVE);
         bindSwitch(R.id.switch_clipboard_history, Settings.KEY_CLIPBOARD_HISTORY);
+        bindSwitch(R.id.switch_stat_block, Settings.KEY_STAT_BLOCK);
         bindSwitch(R.id.switch_debug, Settings.KEY_DEBUG);
     }
 

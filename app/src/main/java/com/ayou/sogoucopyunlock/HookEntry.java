@@ -26,6 +26,7 @@ public class HookEntry implements IXposedHookLoadPackage {
     private static boolean sFeaturePhraseLength;
     private static boolean sFeatureClipboardMove;
     private static boolean sFeatureClipboardHistory;
+    private static boolean sFeatureStatBlock;
 
     private static volatile HashMap<?, ?> sToolbarMap;
 
@@ -75,6 +76,9 @@ public class HookEntry implements IXposedHookLoadPackage {
         if (sFeatureClipboardHistory) {
             hookClipboardCountLabel(lpparam);
         }
+        if (sFeatureStatBlock) {
+            hookStatisticsData(lpparam);
+        }
     }
 
     private static void loadPrefs(android.content.Context context) {
@@ -84,6 +88,7 @@ public class HookEntry implements IXposedHookLoadPackage {
         sFeaturePhraseLength = true;
         sFeatureClipboardMove = true;
         sFeatureClipboardHistory = true;
+        sFeatureStatBlock = true;
         try {
             android.net.Uri uri = android.net.Uri.parse("content://" + ConfigProvider.AUTHORITY);
             android.database.Cursor cursor = context.getContentResolver()
@@ -97,6 +102,7 @@ public class HookEntry implements IXposedHookLoadPackage {
                         sFeaturePhraseLength = cursor.getInt(cursor.getColumnIndexOrThrow(Settings.KEY_PHRASE_LENGTH)) == 1;
                         sFeatureClipboardMove = cursor.getInt(cursor.getColumnIndexOrThrow(Settings.KEY_CLIPBOARD_MOVE)) == 1;
                         sFeatureClipboardHistory = cursor.getInt(cursor.getColumnIndexOrThrow(Settings.KEY_CLIPBOARD_HISTORY)) == 1;
+                        sFeatureStatBlock = cursor.getInt(cursor.getColumnIndexOrThrow(Settings.KEY_STAT_BLOCK)) == 1;
                     }
                 } finally {
                     cursor.close();
@@ -275,6 +281,24 @@ public class HookEntry implements IXposedHookLoadPackage {
                     });
         } catch (Throwable t) {
             log("clipboard move-to-phrase hook failed: " + t);
+        }
+    }
+
+    private static void hookStatisticsData(XC_LoadPackage.LoadPackageParam lpparam) {
+        try {
+            XposedHelpers.findAndHookMethod(
+                    "com.sohu.inputmethod.settings.internet.StatisticsData",
+                    lpparam.classLoader,
+                    "w", int.class,
+                    new XC_MethodReplacement() {
+                        @Override
+                        protected Object replaceHookedMethod(MethodHookParam param) {
+                            return null;
+                        }
+                    });
+            log("StatisticsData.w() disabled");
+        } catch (Throwable t) {
+            log("StatisticsData hook failed: " + t);
         }
     }
 

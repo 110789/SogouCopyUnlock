@@ -79,6 +79,16 @@
         </LinearLayout>
 
         <LinearLayout
+            android:id="@+id/row_stat_block"
+            style="@style/SettingRow">
+            <LinearLayout style="@style/SettingRowTextArea">
+                <TextView style="@style/SettingRowTitle" android:text="禁用统计上报" />
+                <TextView style="@style/SettingRowSubtitle" android:text="阻止使用行为数据打点上报" />
+            </LinearLayout>
+            <Switch android:id="@+id/switch_stat_block" style="@style/SettingRowSwitch" />
+        </LinearLayout>
+
+        <LinearLayout
             android:id="@+id/row_debug"
             style="@style/SettingRow">
             <LinearLayout style="@style/SettingRowTextArea">

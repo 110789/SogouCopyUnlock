@@ -18,6 +18,7 @@ public class ConfigProvider extends ContentProvider {
             Settings.KEY_PHRASE_LENGTH,
             Settings.KEY_CLIPBOARD_MOVE,
             Settings.KEY_CLIPBOARD_HISTORY,
+            Settings.KEY_STAT_BLOCK,
     };
 
     @Override
