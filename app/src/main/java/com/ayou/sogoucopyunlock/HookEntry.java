@@ -285,21 +285,87 @@ public class HookEntry implements IXposedHookLoadPackage {
     }
 
     private static void hookStatisticsData(XC_LoadPackage.LoadPackageParam lpparam) {
+        noopMethod(lpparam, "com.sohu.inputmethod.settings.internet.StatisticsData", "w", int.class);
+
+        noopMethod(lpparam, "com.sogou.plus.manager.ReportManager", "addEvent",
+                XposedHelpers.findClassIfExists("com.sogou.plus.model.Event", lpparam.classLoader));
+        noopMethod(lpparam, "com.sogou.plus.manager.ReportManager", "addEvents",
+                int.class, java.util.List.class);
+
+        noopMethod(lpparam, "com.sogou.plus.manager.StatManager", "onEvent",
+                android.content.Context.class, String.class, long.class);
+        noopMethod(lpparam, "com.sogou.plus.manager.StatManager", "onEvent",
+                android.content.Context.class, String.class, java.util.Map.class, long.class);
+        noopMethod(lpparam, "com.sogou.plus.manager.StatManager", "onLog",
+                android.content.Context.class, int.class, String.class, String.class, long.class);
+        noopMethod(lpparam, "com.sogou.plus.manager.StatManager", "onDeviceReportCheck",
+                android.content.Context.class, long.class);
+        noopMethod(lpparam, "com.sogou.plus.manager.StatManager", "onActive",
+                android.content.Context.class, long.class);
+        noopMethod(lpparam, "com.sogou.plus.manager.StatManager", "onPause",
+                android.content.Context.class, long.class);
+        noopMethod(lpparam, "com.sogou.plus.manager.StatManager", "onResume",
+                android.content.Context.class, long.class);
+
+        noopMethod(lpparam, "com.sogou.plus.manager.KeyBoardReportManager", "report",
+                XposedHelpers.findClassIfExists("com.sogou.plus.model.Event", lpparam.classLoader));
+        noopMethod(lpparam, "com.sogou.plus.manager.KeyBoardManager", "report",
+                android.content.Context.class, long.class);
+
         try {
             XposedHelpers.findAndHookMethod(
-                    "com.sohu.inputmethod.settings.internet.StatisticsData",
+                    "com.sogou.plus.manager.RequestManager",
                     lpparam.classLoader,
-                    "w", int.class,
+                    "getUdid",
                     new XC_MethodReplacement() {
                         @Override
                         protected Object replaceHookedMethod(MethodHookParam param) {
-                            return null;
+                            return "";
                         }
                     });
-            log("StatisticsData.w() disabled");
+            log("RequestManager.getUdid() blanked");
         } catch (Throwable t) {
-            log("StatisticsData hook failed: " + t);
+            log("getUdid hook failed: " + t);
         }
+
+        try {
+            XposedHelpers.findAndHookMethod(
+                    "com.sogou.plus.manager.RequestManager",
+                    lpparam.classLoader,
+                    "getOpaque",
+                    new XC_MethodReplacement() {
+                        @Override
+                        protected Object replaceHookedMethod(MethodHookParam param) {
+                            return "";
+                        }
+                    });
+            log("RequestManager.getOpaque() blanked");
+        } catch (Throwable t) {
+            log("getOpaque hook failed: " + t);
+        }
+    }
+
+    private static void noopMethod(XC_LoadPackage.LoadPackageParam lpparam, String className,
+                                    String methodName, Object... paramTypes) {
+        try {
+            Class<?> clazz = XposedHelpers.findClass(className, lpparam.classLoader);
+            XposedHelpers.findAndHookMethod(clazz, methodName, appendHook(paramTypes));
+            log(className + "." + methodName + "() disabled");
+        } catch (Throwable t) {
+            log(className + "." + methodName + " hook failed: " + t);
+        }
+    }
+
+    private static Object[] appendHook(Object[] paramTypes) {
+        Object[] result = new Object[paramTypes.length + 1];
+        System.arraycopy(paramTypes, 0, result, 0, paramTypes.length);
+        result[paramTypes.length] = new XC_MethodReplacement() {
+            @Override
+            protected Object replaceHookedMethod(MethodHookParam param) {
+                return null;
+            }
+        };
+        return result;
     }
 
     private static void hookClipboardCountLabel(XC_LoadPackage.LoadPackageParam lpparam) {
