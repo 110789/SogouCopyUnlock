@@ -245,15 +245,25 @@ public class HookEntry implements IXposedHookLoadPackage {
             Class<?> clazz = XposedHelpers.findClass(
                     "com.sogou.inputmethod.oem.oppo.dialog.ShortcutPhrasesDialogTransActivity",
                     lpparam.classLoader);
-            XposedBridge.hookAllMethods(clazz, "g0", new XC_MethodHook() {
+            XC_MethodHook hook = new XC_MethodHook() {
                 @Override
                 protected void beforeHookedMethod(MethodHookParam param) {
                     if (param.args.length == 7 && param.args[4] instanceof Spanned) {
-                        log("bypassed shortcut-phrase 300-char filter");
+                        log("bypassed shortcut-phrase 300-char filter (method="
+                                + param.method.getName() + ")");
                         param.setResult(null);
                     }
                 }
-            });
+            };
+            int hooked = 0;
+            for (java.lang.reflect.Method m : clazz.getDeclaredMethods()) {
+                Class<?>[] types = m.getParameterTypes();
+                if (types.length == 7 && types[4] == Spanned.class) {
+                    XposedBridge.hookMethod(m, hook);
+                    hooked++;
+                }
+            }
+            log("shortcut phrase filter: hooked " + hooked + " candidate method(s)");
         } catch (Throwable t) {
             log("shortcut phrase filter hook failed: " + t);
         }
